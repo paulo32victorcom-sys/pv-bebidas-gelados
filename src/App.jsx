@@ -52,8 +52,27 @@ export default function App() {
   const setQty = (id,n) => setCart(c=>({...c,[id]:Math.max(0,n)}));
 
   async function signIn(email,password) {
-    const {error} = await supabase.auth.signInWithPassword({email,password});
-    if(error) setNotice("Login não realizado: "+error.message);
+    setBusy(true);
+    setNotice("");
+
+    try {
+      const {data,error} = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      });
+
+      if(error) {
+        setNotice("Erro no login: " + error.message);
+      } else if(data.session) {
+        setSession(data.session);
+        setNotice("Login realizado com sucesso!");
+      }
+    } catch(error) {
+      setNotice("Erro inesperado: " + error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   }
   async function signOut(){await supabase.auth.signOut();setAdminOpen(false);}
   async function saveProduct(e) {
@@ -116,6 +135,8 @@ export default function App() {
 
     {checkout&&<div className="overlay"><section className="modal"><div className="drawerHead"><h2>Finalizar pedido</h2><button className="iconBtn" onClick={()=>setCheckout(false)}><X/></button></div><form onSubmit={finishOrder}><label>Seu nome<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Como podemos chamar você?"/></label><label>Como deseja receber?<select value={form.delivery} onChange={e=>setForm({...form,delivery:e.target.value})}><option>Entrega</option><option>Retirada</option></select></label>{form.delivery==="Entrega"&&<label>Endereço de entrega<textarea required value={form.address} onChange={e=>setForm({...form,address:e.target.value})} placeholder="Rua, número, bairro e referência"/></label>}<label>Forma de pagamento<select value={form.payment} onChange={e=>setForm({...form,payment:e.target.value})}><option>Pix</option><option>Dinheiro</option><option>Cartão</option></select></label><div className="total"><span>Total do pedido</span><b>{money(total)}</b></div><p className="hint">O pagamento será feito na entrega ou na retirada. Ao confirmar, o WhatsApp abrirá com os detalhes do pedido.</p><button className="primary full" disabled={busy}>{busy?"Registrando...":"Confirmar e enviar pelo WhatsApp"}</button></form></section></div>}
 
-    {adminOpen&&<div className="overlay"><section className="modal adminModal"><div className="drawerHead"><h2>Área administrativa</h2><button className="iconBtn" onClick={()=>setAdminOpen(false)}><X/></button></div>{!session?<form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);signIn(d.get("email"),d.get("password"));}}><p className="hint">Acesso exclusivo do proprietário.</p><label>E-mail cadastrado no Supabase<input name="email" type="email" required placeholder="seu@email.com"/></label><label>Senha<input name="password" type="password" required placeholder="Sua senha"/></label><button className="primary full">Entrar</button><small className="hint">A senha inicial sugerida é 9361. Configure o usuário no Supabase seguindo o README.</small></form>:<><div className="adminActions"><button className="primary" onClick={()=>{setEdit({name:"",price:"",stock:0,description:"",image_url:""});setImageFile(null)}}><PackagePlus size={16}/> Novo produto</button><button className="secondary" onClick={signOut}><LogOut size={16}/> Sair</button></div>{edit&&<form className="editForm" onSubmit={saveProduct}><h3>{edit.id?"Editar produto":"Cadastrar produto"}</h3><label>Nome<input required value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/></label><div className="two"><label>Preço (R$)<input required type="number" min="0" step="0.01" value={edit.price} onChange={e=>setEdit({...edit,price:e.target.value})}/></label><label>Estoque<input required type="number" min="0" step="1" value={edit.stock} onChange={e=>setEdit({...edit,stock:e.target.value})}/></label></div><label>Descrição (opcional)<input value={edit.description} onChange={e=>setEdit({...edit,description:e.target.value})}/></label><label className="fileLabel"><ImagePlus size={17}/> Foto do produto<input type="file" accept="image/*" onChange={e=>setImageFile(e.target.files[0])}/></label><div className="adminActions"><button className="primary" disabled={busy}>{busy?"Salvando...":"Salvar produto"}</button><button type="button" className="secondary" onClick={()=>setEdit(null)}>Cancelar</button></div></form>}<div className="adminProducts"><h3>Produtos e estoque</h3>{products.map(p=><div className="adminProduct" key={p.id}><div><b>{p.name}</b><small>{money(p.price)} · Estoque: {p.stock}</small></div><button className="secondary mini" onClick={()=>addStock(p)}>+ Estoque</button><button className="secondary mini" onClick={()=>setEdit({...p})}>Editar</button><button className="danger mini" onClick={()=>deleteProduct(p.id)}>Excluir</button></div>)}</div></>}</section></div>}
+    {adminOpen&&<div className="overlay"><section className="modal adminModal"><div className="drawerHead"><h2>Área administrativa</h2><button className="iconBtn" onClick={()=>setAdminOpen(false)}><X/></button></div>{!session?<form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);signIn(d.get("email"),d.get("password"));}}><p className="hint">Acesso exclusivo do proprietário.</p><label>E-mail cadastrado no Supabase<input name="email" type="email" required placeholder="seu@email.com"/></label><label>Senha<input name="password" type="password" required placeholder="Sua senha"/></label><button className="primary full" type="submit" disabled={busy}>
+  {busy ? "Entrando..." : "Entrar"}
+</button><small className="hint">A senha inicial sugerida é 9361. Configure o usuário no Supabase seguindo o README.</small></form>:<><div className="adminActions"><button className="primary" onClick={()=>{setEdit({name:"",price:"",stock:0,description:"",image_url:""});setImageFile(null)}}><PackagePlus size={16}/> Novo produto</button><button className="secondary" onClick={signOut}><LogOut size={16}/> Sair</button></div>{edit&&<form className="editForm" onSubmit={saveProduct}><h3>{edit.id?"Editar produto":"Cadastrar produto"}</h3><label>Nome<input required value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/></label><div className="two"><label>Preço (R$)<input required type="number" min="0" step="0.01" value={edit.price} onChange={e=>setEdit({...edit,price:e.target.value})}/></label><label>Estoque<input required type="number" min="0" step="1" value={edit.stock} onChange={e=>setEdit({...edit,stock:e.target.value})}/></label></div><label>Descrição (opcional)<input value={edit.description} onChange={e=>setEdit({...edit,description:e.target.value})}/></label><label className="fileLabel"><ImagePlus size={17}/> Foto do produto<input type="file" accept="image/*" onChange={e=>setImageFile(e.target.files[0])}/></label><div className="adminActions"><button className="primary" disabled={busy}>{busy?"Salvando...":"Salvar produto"}</button><button type="button" className="secondary" onClick={()=>setEdit(null)}>Cancelar</button></div></form>}<div className="adminProducts"><h3>Produtos e estoque</h3>{products.map(p=><div className="adminProduct" key={p.id}><div><b>{p.name}</b><small>{money(p.price)} · Estoque: {p.stock}</small></div><button className="secondary mini" onClick={()=>addStock(p)}>+ Estoque</button><button className="secondary mini" onClick={()=>setEdit({...p})}>Editar</button><button className="danger mini" onClick={()=>deleteProduct(p.id)}>Excluir</button></div>)}</div></>}</section></div>}
   </div>;
 }
