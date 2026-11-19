@@ -59,7 +59,7 @@ export default function App() {
      console.log("Tentando login..."); const {data,error} = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
-      });console.log("Resposta do login:", {data, error});
+      console.log("Resposta do login:", error?.message || (data?.session ? "Sessão criada" : "Sem sessão"));
 
       if(error) {
         setNotice("Erro no login: " + error.message);
