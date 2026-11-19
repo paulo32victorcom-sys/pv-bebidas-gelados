@@ -78,11 +78,12 @@ export default function App() {
     }
   } catch (error) {
     setNotice("Erro inesperado: " + error.message);
-  } finally {
+    } finally {
     clearTimeout(timeoutId);
     setBusy(false);
   }
     }
+  
   
   async function signOut(){await supabase.auth.signOut();setAdminOpen(false);}
   async function saveProduct(e) {
