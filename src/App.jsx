@@ -49,30 +49,40 @@ export default function App() {
   const total = cartItems.reduce((s,p)=>s + Number(p.price)*cart[p.id],0);
   const count = Object.values(cart).reduce((a,b)=>a+b,0);
   const filtered = products.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
-  const setQty = (id,n) => setCart(c=>({...c,[id]:Math.max(0,n)}));
+  const setQty = (id,n) => 
+    async function signIn(email, password) {
+  setBusy(true);
+  setNotice("");
 
-  async function signIn(email,password) {
-    setBusy(true);
-    setNotice("");
+  let timeoutId;
 
-    try {
-     console.log("Tentando login..."); const {data,error} = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password
-      console.log("Resposta do login:", error?.message || (data?.session ? "Sessão criada" : "Sem sessão"));
+  try {
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error("A conexão demorou demais. Tente novamente."));
+      }, 15000);
+    });
 
-      if(error) {
-        setNotice("Erro no login: " + error.message);
-      } else if(data.session) {
-        setSession(data.session);
-        setNotice("Login realizado com sucesso!");
-      }
-    } catch(error) {
-      setNotice("Erro inesperado: " + error.message);
-    } finally {
-      setBusy(false);
+    const login = supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password
+    });
+
+    const { data, error } = await Promise.race([login, timeout]);
+
+    if (error) {
+      setNotice("Erro no login: " + error.message);
+    } else if (data?.session) {
+      setSession(data.session);
+      setNotice("Login realizado com sucesso!");
     }
+  } catch (error) {
+    setNotice("Erro inesperado: " + error.message);
+  } finally {
+    clearTimeout(timeoutId);
+    setBusy(false);
   }
+    }
   
   async function signOut(){await supabase.auth.signOut();setAdminOpen(false);}
   async function saveProduct(e) {
