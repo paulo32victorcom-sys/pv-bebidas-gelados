@@ -56,10 +56,10 @@ export default function App() {
     setNotice("");
 
     try {
-      const {data,error} = await supabase.auth.signInWithPassword({
+     console.log("Tentando login..."); const {data,error} = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
-      });
+      });console.log("Resposta do login:", {data, error});
 
       if(error) {
         setNotice("Erro no login: " + error.message);
