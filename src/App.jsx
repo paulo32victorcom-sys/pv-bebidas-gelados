@@ -73,7 +73,7 @@ export default function App() {
       setBusy(false);
     }
   }
-  }
+  
   async function signOut(){await supabase.auth.signOut();setAdminOpen(false);}
   async function saveProduct(e) {
     e.preventDefault(); if(!supabase || !edit) return;
